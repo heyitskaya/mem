@@ -11,13 +11,18 @@ int main(int argc, char **argv){
 	return 0;
 }
 
-typedef struct header {
+typedef struct Header {
 	int size;
 	int magic;
 };
 
 /**node will have a header and next **/
-
+typedef struct Node{
+	int startAddress;
+	struct Header header;
+	struct node* next;
+};
+	
 /**Calls mmap to request sizeOfRegion bytes of memory to manage, subject to rounding up **/
 void *Mem_Init(int sizeOfRegion){
 	int pageSize = getpagesize();
