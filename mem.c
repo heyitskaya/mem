@@ -10,11 +10,13 @@
 int main(int argc, char **argv){
 	return 0;
 }
-/**
+
 typedef struct header {
 	int size;
 	int magic;
-}**/
+};
+
+/**node will have a header and next **/
 
 /**Calls mmap to request sizeOfRegion bytes of memory to manage, subject to rounding up **/
 void *Mem_Init(int sizeOfRegion){
