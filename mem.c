@@ -10,7 +10,7 @@
 //struct Header *head;
 typedef struct Header {
            void *startAddress;
-           int size;
+           int size; //amount of free space not including head
            int magic;
            struct Header* next;
  };
@@ -20,11 +20,13 @@ typedef struct List {
 };
 
 int main(int argc, char **argv){
+	printf("in main function");
 	int sizeRequested = 4096;
 	void *memory = Mem_Init(4096); //virtual address
-	printf("Mem_Init returned %p\n\n", memory);
-	struct Header head;
-	head.size=sizeRequested-sizeof(head);
+	void *ptr = Mem_Alloc(4);
+	printf("Allocated 4 bytes at %p\n", ptr);
+	strcpy(ptr,"abc");
+	Mem_Dump();
 	return 0;
 }
 
@@ -49,7 +51,8 @@ void *Mem_Init(int sizeOfRegion){
 	head = (struct Header *)ptr;
 	(*head).size = sizeOfRegion-sizeof(*head);
 	head->startAddress = ptr;
-
+	head->magic = 8;
+	head->next = NULL;
 	close(fd);
 	return ptr;
 }
@@ -60,16 +63,17 @@ void *Mem_Alloc(int sizeRequested){
 	node = head;
 	while(node!=NULL){
 	//node->size
-		if((*node).size>sizeRequested + 32){
-			(*node).size=(*node).size-(sizeRequested+32); //change size
-			(*node).startAddress = (*node).startAddress + sizeRequested + 32; //change starting address
-			return;
+		if(node->size>sizeRequested){ //does not need to add additional 32 because the node already has header
+			node->size=node->size-sizeRequested; //change size
+			node->startAddress = node->startAddress + sizeRequested; //change starting address
+			return node->startAddress;
 		}
 		else{
 			node=node->next;
 		}
 	}
-
+	//if no such node exists
+	return NULL;
 }
 
 /**Given a pointer free the memory allocated**/
@@ -77,11 +81,16 @@ int Mem_Free(void *ptr){
 	return -1;
 }
 /**For debugging**/
-/**
+
 void MemDump(){
-	printf("%s\n", "Free memory");
-	printf("address = %p\n\n",memory);
-	printf("size = %d\n", sizeRequested);
-}**/
+	struct Header *node = head;
+	while(node!=NULL){
+		printf("%s\n", "Free memory");
+		printf("address = %p\n", (void *)node);
+		printf("size = %d\n", node->size);
+		node = node->next;
+	}
+
+}
 
 
