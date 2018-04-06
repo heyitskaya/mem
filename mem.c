@@ -58,6 +58,7 @@ void *Mem_Init(int sizeOfRegion){
 	head->startAddress = ptr;
 	head->magic = 0;
 	head->next = NULL;
+	printf("size of head in init is %d\n",sizeof(head));
 	close(fd);
 	return ptr;
 }
@@ -74,18 +75,17 @@ void *Mem_Alloc(int sizeRequested){
 			int sizeofNodeHeader = sizeof(node);	
 			struct Header *allocatedMemory = node->startAddress;
 			printf("size of node %d\n", sizeOfNode);
-			allocatedMemory->magic = 8;
+			allocatedMemory->magic = 20;
 			allocatedMemory->size = sizeRequested;	
-			//allocatedMemory->next = NULL;
 			node = allocatedMemory->startAddress + sizeof(allocatedMemory) + sizeRequested;
 
 			node->size = sizeOfNode-sizeRequested-sizeof(allocatedMemory);
-			printf("sizeof(allocatedMemoryHeader): %d\n", sizeof(allocatedMemory));			
 			printf("node->size %d\n", node->size);	
 			node->startAddress = node->startAddress + sizeRequested + sizeof(allocatedMemory); //change starting address
 			printf("allocatedMemory.startAddress is %p\n",allocatedMemory->startAddress);
 			node->next = allocatedMemory->next;
 			allocatedMemory->next = NULL;
+			printf("sizeof(allocatedMemoryHeader): %d\n", sizeof(allocatedMemory));
 			printf("allocatedMemory.magic is %d\n", allocatedMemory->magic);
 			return allocatedMemory->startAddress+sizeof(allocatedMemory);
 		}
@@ -99,16 +99,17 @@ void *Mem_Alloc(int sizeRequested){
 
 /**Given a pointer free the memory allocated**/
 int Mem_Free(void *ptr){
+	printf("%s\n", "------------------");
 	printf("ptr address %p\n", ptr);
-	printf("in free size of header is %d\n", sizeof(struct Header));
-	printf("header address %p\n", (struct Header *) (ptr-sizeof(struct Header)));
-	struct Header *freed = (struct Header *) (ptr-sizeof(struct Header));
+	printf("in free size of header is %d\n", sizeof(struct Header *));
+	printf("header address %p\n", (struct Header *) (ptr-8));
+	struct Header *freed = (struct Header *) (ptr-8);
 	printf( "freed magic %d\n", freed->magic); 
 	if(ptr == NULL){
 		printf("%s\n", "in if statement");
 		return -1; //unsuccessful
 	}
-	else if (freed->magic == 8){ //if it's actually been allocated
+	else if (freed->magic == 32){ //if it's actually been allocated
 		printf("%s\n", "in else if statement");
 		freed->magic = 0;
 		//add to beginning of free list
@@ -124,14 +125,14 @@ int Mem_Free(void *ptr){
 /**For debugging**/
 
 void Mem_Dump(){
-	struct Header *node = head;
+/**	struct Header *node = head;
 	while(node!=NULL){
 		printf("%s\n", "Free memory:");
 		printf("address = %p\n", (void *)node);
 		printf("size = %d\n", node->size);
 		node = node->next;
 	}
-	printf("----------------\n");
+	printf("----------------\n");**/
 }
 
 
