@@ -12,12 +12,10 @@ typedef struct Header {
            int size; //amount of free space not including head
            int magic;
            struct Header* next;
- };
+ }Header;
 
-typedef struct List {
-         struct Header head;
-};
 struct Header *head;
+int getSize(struct Header *node);
 
 int main(int argc, char **argv){
 	printf("in main");
@@ -76,7 +74,6 @@ int main(int argc, char **argv){
 	return 0;
 }
 
-//struct Header *head;
 	
 /**Calls mmap to request sizeOfRegion bytes of memory to manage, subject to rounding up **/
 void *Mem_Init(int sizeOfRegion){
@@ -107,10 +104,6 @@ void *Mem_Init(int sizeOfRegion){
 void *Mem_Alloc(int sizeRequested){
 	struct Header *node;
 	node = head;
-	//int numNode=0;
-//	printList();
-	int isHead = 0;
-
 	while(node!=NULL){
 		/**big enough to fulfill request but small enough so that giving them the entire
 		chunk is not wasteful**/
@@ -139,7 +132,6 @@ void *Mem_Alloc(int sizeRequested){
 		else if(node->size > sizeRequested+24){ 
 			int nodeSize = node->size;
 			void* nodeStartAddress = node->startAddress;
-			struct Header *nodeNext = node->next;
 			
 			/**create the header for the allocated memory and init instance fields**/
 			struct Header *allocatedMemoryHeader = nodeStartAddress + sizeof(node)+nodeSize-sizeof(allocatedMemoryHeader)-sizeRequested;
@@ -152,10 +144,7 @@ void *Mem_Alloc(int sizeRequested){
 			return allocatedMemoryHeader->startAddress + sizeof(*allocatedMemoryHeader);
 		}
 		else if(node->size == sizeRequested + 24){
-			int nodeSize = node->size;
                         void* nodeStartAddress = node->startAddress;
-	                struct Header *nodeNext = node->next;
-			printf("should be else if ");
 			struct Header *allocatedMemoryHeader = node->startAddress;
 			allocatedMemoryHeader->startAddress = nodeStartAddress;
 			allocatedMemoryHeader->magic = 8;
