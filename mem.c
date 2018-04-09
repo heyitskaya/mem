@@ -95,7 +95,6 @@ void *Mem_Init(int sizeOfRegion){
 	head->startAddress = ptr;
 	head->magic = 0;
 	head->next = NULL;
-	
 	close(fd);
 	return ptr;
 }
@@ -107,34 +106,30 @@ void *Mem_Alloc(int sizeRequested){
 	while(node!=NULL){
 		/**big enough to fulfill request but small enough so that giving them the entire
 		chunk is not wasteful**/
-		if(node->size >= sizeRequested && node->size < sizeRequested + 24){
+		struct Header *allocatedMemoryHeader;
+		int nodeSize = node->size;
+		void *nodeStartAddress = node->startAddress;
+		struct Header *nodeNext = node->next;
+		if(node->size >= sizeRequested && node->size <= sizeRequested + 24){
 			printf("in mem_alloc if statement");
-			//just give entire chunk
-			int nodeSize = node->size;
-			void* nodeStartAddress = node->startAddress;	
-			struct Header *nodeNext = node->next;
-				
-			struct Header *allocatedMemory = nodeStartAddress;
-			allocatedMemory->size = nodeSize;
-			allocatedMemory->next = NULL;
-			allocatedMemory->startAddress = nodeStartAddress;
-			allocatedMemory->magic = 8;
+			allocatedMemoryHeader = nodeStartAddress;
+			allocatedMemoryHeader->size = nodeSize;
+			allocatedMemoryHeader->next = NULL;
+			allocatedMemoryHeader->startAddress = nodeStartAddress;
+			allocatedMemoryHeader->magic = 8;
 			/**If the chunk we found was the head of the list allocating it may 	
 			cause us to lose reference to head of list so we want to assign head of
 			list to what's next in the list**/
 			if(nodeStartAddress == head->startAddress){
 				head = nodeNext;
 			}
-			return nodeStartAddress+sizeof(*allocatedMemory); //where free mem starts
+			return nodeStartAddress+sizeof(*allocatedMemoryHeader); //where free mem starts
 
 
 		}
 		else if(node->size > sizeRequested+24){ 
-			int nodeSize = node->size;
-			void* nodeStartAddress = node->startAddress;
 			
-			/**create the header for the allocated memory and init instance fields**/
-			struct Header *allocatedMemoryHeader = nodeStartAddress + sizeof(node)+nodeSize-sizeof(allocatedMemoryHeader)-sizeRequested;
+			allocatedMemoryHeader = nodeStartAddress + sizeof(node)+nodeSize-sizeof(allocatedMemoryHeader)-sizeRequested;
 			allocatedMemoryHeader->startAddress = nodeStartAddress + sizeof(node) +nodeSize -sizeof(allocatedMemoryHeader)-sizeRequested;
 			allocatedMemoryHeader->size = sizeRequested;
 			allocatedMemoryHeader->magic = 8;
@@ -142,19 +137,6 @@ void *Mem_Alloc(int sizeRequested){
 			node->size = nodeSize-sizeof(*allocatedMemoryHeader) - sizeRequested;//minus size of header object
 			node->magic = 0;
 			return allocatedMemoryHeader->startAddress + sizeof(*allocatedMemoryHeader);
-		}
-		else if(node->size == sizeRequested + 24){
-                        void* nodeStartAddress = node->startAddress;
-			struct Header *allocatedMemoryHeader = node->startAddress;
-			allocatedMemoryHeader->startAddress = nodeStartAddress;
-			allocatedMemoryHeader->magic = 8;
-			allocatedMemoryHeader->size = sizeRequested;
-			if(allocatedMemoryHeader->startAddress == head->startAddress){
-				head = head->next;
-			}
-			printf("in mem_alloc allocated memory header at %p\n", allocatedMemoryHeader->startAddress);
-			return allocatedMemoryHeader->startAddress + sizeof(*allocatedMemoryHeader);
-			
 		}
 		else{
 			node=node->next;
@@ -165,10 +147,7 @@ void *Mem_Alloc(int sizeRequested){
 
 /**Given a pointer free the memory allocated**/
 int Mem_Free(void *ptr){
-
-//my problem is that it's not correctly calculating header address	
 	struct Header *freed = (struct Header *) (ptr-24);
-	//printf("magicNumber if freed is %d\n", freed->magic);
 	if(ptr == NULL){
 		return -1; 
 	}
@@ -177,7 +156,6 @@ int Mem_Free(void *ptr){
 		freed->magic = 0;
 		freed->next = head;
 		head = freed; //add freed header to the head of the list
-		
 		return 0;	
 	}
 	else{
@@ -199,7 +177,7 @@ void Mem_Dump(){
 	printf("end of Mem_Dump----------------\n");
 	printf("\n");
 }
-
+/**Gets size of the list of free mem blocks, for debugging**/
 int getSize(struct Header *node){
 	node = head;
 	int size = 0 ;
@@ -209,6 +187,7 @@ int getSize(struct Header *node){
 	}
 	return size;
 }
+/**Prints list of free mem blocks, for debugging**/
 void printList(){
 	struct Header *node = head;
 	while(node!= NULL){
