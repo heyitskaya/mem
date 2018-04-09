@@ -20,6 +20,7 @@ typedef struct List {
 struct Header *head;
 
 int main(int argc, char **argv){
+	printf("in main");
 	 Mem_Init(4096); //virtual address
 	Mem_Dump();
 	void *ptr = Mem_Alloc(4);
@@ -107,12 +108,31 @@ void *Mem_Alloc(int sizeRequested){
 	int isHead = 0;
 
 	while(node!=NULL){
-	
-		if(node->size > sizeRequested+24){ 
-			
-		//	numNode ++;
+		/**big enough to fulfill request but small enough so that giving them the entire
+		chunk is not wasteful**/
+		if(node->size >= sizeRequested && node->size < sizeRequested + 24){
+			printf("in mem_alloc if statement");
+			//just give entire chunk
+			int nodeSize = node->size;
+			void* nodeStartAddress = node->startAddress;	
+			struct Header *nodeNext = node->next;
+				
+			struct Header *allocatedMemory = nodeStartAddress;
+			allocatedMemory->size = nodeSize;
+			allocatedMemory->next = NULL;
+			allocatedMemory->startAddress = nodeStartAddress;
+			allocatedMemory->magic = 8;
+			/**If the chunk we found was the head of the list allocating it may 	
+			cause us to lose reference to head of list so we want to assign head of
+			list to what's next in the list**/
+			if(nodeStartAddress == head->startAddress){
+				head = nodeNext;
+			}
+			return nodeStartAddress;
 
-//			printf("node size %d\n", node->size);
+
+		}
+		else if(node->size > sizeRequested+24){ 
 			int nodeSize = node->size;
 			void* nodeStartAddress = node->startAddress;
 			struct Header *nodeNext = node->next;
@@ -123,32 +143,16 @@ void *Mem_Alloc(int sizeRequested){
 			allocatedMemoryHeader->size = sizeRequested;
 			allocatedMemoryHeader->magic = 8;
 			allocatedMemoryHeader->next = NULL;
-			/**
-			printf("allocactedMemoryHeader->startAddress %p\n", allocatedMemoryHeader->startAddress);
-			printf("allocatedMemoryHeader->size %d\n", allocatedMemoryHeader->size);
-			printf("allocatedMemoryHeader->magic %d\n", allocatedMemoryHeader->magic);
-			printf("allcoatedMemoryHeader object size is %d\n", sizeof(*allocatedMemoryHeader));
-			**
-			/**change instance fields of node**/
-			//node = nodeStartAddress + sizeof(*allocatedMemoryHeader) + sizeRequested;
 			node->size = nodeSize-sizeof(*allocatedMemoryHeader) - sizeRequested;//minus size of header object
 			node->magic = 0;
-			//node->startAddress = nodeStartAddress + sizeof(*allocatedMemoryHeader) + sizeRequested;
-			//node->next = nodeNext;
-	
-		/*	printf("node->size %d\n", node->size);
-			printf("node->magic %d\n", node->magic);
-			printf("node->startAddress %p\n", node->startAddress);**/
 			return allocatedMemoryHeader->startAddress + sizeof(*allocatedMemoryHeader);
 		}
 		else if(node->size == sizeRequested + 24){
 			int nodeSize = node->size;
                         void* nodeStartAddress = node->startAddress;
 	                struct Header *nodeNext = node->next;
-
 			printf("should be else if ");
 			struct Header *allocatedMemoryHeader = node->startAddress;
-			//allocatedMemoryHeader->next == NULL;
 			allocatedMemoryHeader->startAddress = nodeStartAddress;
 			allocatedMemoryHeader->magic = 8;
 			allocatedMemoryHeader->size = sizeRequested;
@@ -168,11 +172,7 @@ void *Mem_Alloc(int sizeRequested){
 
 /**Given a pointer free the memory allocated**/
 int Mem_Free(void *ptr){
-/**
-	printf("ptr address %p\n", ptr);
-	printf("in free size of header object is %d\n", sizeof(struct Header));
-	printf("in free size of header is %d\n", sizeof(struct Header *));
-	printf("calculated header address %p\n", (struct Header *) (ptr-24));**/
+
 //my problem is that it's not correctly calculating header address	
 	struct Header *freed = (struct Header *) (ptr-24);
 	//printf("magicNumber if freed is %d\n", freed->magic);
@@ -180,14 +180,10 @@ int Mem_Free(void *ptr){
 		return -1; 
 	}
 	else if(freed->magic == 8) { //if it's actually been allocated
-	//	printf("before adding to list size of list is %d\n", getSize(head));
-		freed->size = freed->size + sizeof(struct Header);		
+		printf("freed.size is %d\n", freed->magic);
 		freed->magic = 0;
-		
-			freed->next = head;
-		
+		freed->next = head;
 		head = freed; //add freed header to the head of the list
-	//	printf("after adding to list size of list is %d\n", getSize(head));
 		
 		return 0;	
 	}
