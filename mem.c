@@ -17,6 +17,7 @@ typedef struct Header {
 typedef struct List {
          struct Header head;
 };
+struct Header *head;
 
 int main(int argc, char **argv){
 	 Mem_Init(4096); //virtual address
@@ -35,7 +36,7 @@ int main(int argc, char **argv){
 	if(Mem_Free(ptr)!=-1){
 		printf("Error: Mem_Free of same pointer should have failed!\n");
 	}
-	printf("-------------------");
+	printf("-------------------\n");
 	printf("Allocating 2 chunks of memory.\n");
 	char *ptr2 = Mem_Alloc(4);
 	strcpy(ptr2, "mhc");
@@ -43,12 +44,22 @@ int main(int argc, char **argv){
 	strcpy(ptr3,"bos");
 	Mem_Dump();
 	printf("Should see 1 chunk\n");
-	printf("--------------------");
-
+	printf("--------------------\n");
+	printf("Freeing first chunk and allocating a 3rd bigger chunk. \n");
+	if(Mem_Free(ptr2) == -1){
+		printf("ERROR:Mem_Free failed!\n");
+	}
+	char *ptr4 = Mem_Alloc(11);
+	strcpy(ptr4, "0123456789");
+	printf("Should see two chunks\n");
+	printf("size of free headers is %d\n", getSize(head));
+	Mem_Dump();
+	printf("--------------------\n");
+ 
 	return 0;
 }
 
-struct Header *head;
+//struct Header *head;
 	
 /**Calls mmap to request sizeOfRegion bytes of memory to manage, subject to rounding up **/
 void *Mem_Init(int sizeOfRegion){
@@ -80,34 +91,58 @@ void *Mem_Alloc(int sizeRequested){
 	struct Header *node;
 	node = head;
 	int numNode=0;
+	printList();
+	int isHead = 0;
+
 	while(node!=NULL){
+		printf("KAYA \n");
 		if(node->size > sizeRequested+32){ 
-			numNode++;	
+			/**if(node->startAddress == head->startAddress){ //if the node we found is the head 
+				isHead ==1;	
+			}**/
+			numNode ++;
+			printf("node size %d\n", node->size);
+
 			printf("numNode %d\n", numNode);
-			printf("Before nodeStartAddress %p\n", node->startAddress );	
+//			numNode++;	
+//			printf("node size %d\n", node->size);
+			printf("Before: in Mem_Alloc size of list is %d\n", getSize(head));
+			//printf("Before nodeStartAddress %p\n", node->startAddress );	
 			int nodeSize = node->size;
 			void* nodeStartAddress = node->startAddress;
 			struct Header *nodeNext = node->next;
+			printf("nodeStartAddress %p\n",nodeStartAddress);
+			printf("headStartAddress %p\n", head->startAddress);
 			/**create the header for the allocated memory and init instance fields**/
 			struct Header *allocatedMemoryHeader = nodeStartAddress;
 			allocatedMemoryHeader->startAddress = nodeStartAddress;
 			allocatedMemoryHeader->size = sizeRequested;
 			allocatedMemoryHeader->magic = 8;
 			allocatedMemoryHeader->next = NULL;
+			/**
 			printf("allocactedMemoryHeader->startAddress %p\n", allocatedMemoryHeader->startAddress);
 			printf("allocatedMemoryHeader->size %d\n", allocatedMemoryHeader->size);
 			printf("allocatedMemoryHeader->magic %d\n", allocatedMemoryHeader->magic);
 			printf("allcoatedMemoryHeader object size is %d\n", sizeof(*allocatedMemoryHeader));
-		
+			**
 			/**change instance fields of node**/
 			node = nodeStartAddress + sizeof(*allocatedMemoryHeader) + sizeRequested;
 			node->size = nodeSize-sizeof(*allocatedMemoryHeader) - sizeRequested;//minus size of header object
 			node->magic = 0;
 			node->startAddress = nodeStartAddress + sizeof(*allocatedMemoryHeader) + sizeRequested;
 			node->next = nodeNext;
-			if(numNode == 1){
+		
+			printf("AAAAAAAAAAA");
+			printf("nodeStartAddress: %p\n", nodeStartAddress);
+			printf("head->startAddress: %p\n", head->startAddress);
+		/**	if(nodeStartAddress == head->startAddress){
+				head = node;
+			} //otherwise just leave head where it is **/
+			printf("Before if statement size of list is %d\n", getSize(head));
+			if(numNode == 1 ){
 				head = node;
 			}
+			printf("After: in Mem_Alloc size of list is %d\n",getSize(head));
 		/*	printf("node->size %d\n", node->size);
 			printf("node->magic %d\n", node->magic);
 			printf("node->startAddress %p\n", node->startAddress);**/
@@ -129,24 +164,25 @@ int Mem_Free(void *ptr){
 	printf("in free size of header is %d\n", sizeof(struct Header *));
 	printf("calculated header address %p\n", (struct Header *) (ptr-24));**/
 	struct Header *freed = (struct Header *) (ptr-24);
-	printf( "freed magic %d\n", freed->magic); 
 	if(ptr == NULL){
 		return -1; 
 	}
 	else if(freed->magic == 8) { //if it's actually been allocated
-		freed->magic = 0;
+		printf("before adding to list size of list is %d\n", getSize(head));
 		
-	//	printf("size of freed space is %d\n", freed->size);
+		freed->magic = 0;
+		freed->next = head;
+		head = freed; //add freed header to the head of the list
+		printf("after adding to list size of list is %d\n", getSize(head));
+		/**	
 		struct Header *tempNode = head;
+		
+	
 		while(tempNode->next!=NULL){
 			tempNode = tempNode->next;
 		}
-	//	printf("before adding size of list is %d\n", getSize(head));
-	//	printf("before adding head size is %d\n", head->size);
-		//after breaking out of while loop we are at end up free list
 		tempNode->next = freed;
-		freed->next = NULL;
-	//	printf("in mem_free size is %d\n", getSize(head));
+		freed->next = NULL;**/
 		return 0;	
 	}
 	else{
@@ -159,14 +195,13 @@ int Mem_Free(void *ptr){
 void Mem_Dump(){
 	struct Header *node = head;
 	int size = getSize(node);
+	printf("in Mem_Dump size of list is %d\n", getSize(head));
 	//printf("haha size is %d\n",size);
 	int totalFreeSpace = head->size;
 	//printf("head startAddress %p\n", head->startAddress);
 	while(node!=NULL){
-		//printf("!!!!!!!!!!!!!!!!!!!!\n");
 		printf("address = %p\n", (void *)node);
 		printf("size = %d\n", node->size);
-		//printf("!!!!!!!!!!!!!!!!!!!!\n");
 		node = node->next;
 	}
 	//printf("size is %d\n", size);
@@ -181,3 +216,11 @@ int getSize(struct Header *node){
 	}
 	return size;
 }
+void printList(){
+	struct Header *node = head;
+	while(node!= NULL){
+		printf("sizeOfNode %d\n", node->size);
+		node = node->next;
+	}
+}
+	
