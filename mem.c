@@ -68,7 +68,11 @@ int main(int argc, char **argv){
 	if(strcmp(ptr5,"csc")){
 		printf("ERROR: ptr5 changed to %s\n", ptr5);
 	}
-	
+	printf("Allocated a big block.\n");
+	void *ptr6 = Mem_Alloc(4000);
+	printf("Allocated 4000 bytes at %p\n", ptr6);
+	printf("Still one chink of free memory but much smaller");
+	Mem_Dump();	
 	return 0;
 }
 
@@ -128,7 +132,7 @@ void *Mem_Alloc(int sizeRequested){
 			if(nodeStartAddress == head->startAddress){
 				head = nodeNext;
 			}
-			return nodeStartAddress;
+			return nodeStartAddress+sizeof(*allocatedMemory); //where free mem starts
 
 
 		}
@@ -195,11 +199,9 @@ int Mem_Free(void *ptr){
 
 void Mem_Dump(){
 	struct Header *node = head;
-	int size = getSize(node);
 	printf("\n");
 	printf("start of Mem_Dump--------------\n");
 	printf("in Mem_Dump size of list is %d\n", getSize(head));
-	int totalFreeSpace = head->size;
 	while(node!=NULL){
 		printf("address = %p\n", (void *)node);
 		printf("size = %d\n", node->size);
