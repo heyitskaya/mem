@@ -18,7 +18,6 @@ struct Header *head;
 int getSize(struct Header *node);
 
 int main(int argc, char **argv){
-	printf("in main");
 	 Mem_Init(4096); //virtual address
 	Mem_Dump();
 	void *ptr = Mem_Alloc(4);
@@ -77,7 +76,6 @@ int main(int argc, char **argv){
 	
 /**Calls mmap to request sizeOfRegion bytes of memory to manage, subject to rounding up **/
 void *Mem_Init(int sizeOfRegion){
-//put first header in place
 	int pageSize = getpagesize();
 	if(sizeOfRegion%pageSize!=0){ //need to round up
 		int num = sizeOfRegion/pageSize;
@@ -90,6 +88,7 @@ void *Mem_Init(int sizeOfRegion){
 		perror("mmap"); 
 		exit(1);
 	}
+	//initialize head variable
 	head = (struct Header *)ptr;
 	(*head).size = sizeOfRegion-sizeof(*head);
 	head->startAddress = ptr;
@@ -127,6 +126,7 @@ void *Mem_Alloc(int sizeRequested){
 
 
 		}
+		/**the size of node is much bigger than the sizeRequested and it is worth creating another header for**/
 		else if(node->size > sizeRequested+24){ 
 			
 			allocatedMemoryHeader = nodeStartAddress + sizeof(node)+nodeSize-sizeof(allocatedMemoryHeader)-sizeRequested;
@@ -147,7 +147,7 @@ void *Mem_Alloc(int sizeRequested){
 
 /**Given a pointer free the memory allocated**/
 int Mem_Free(void *ptr){
-	struct Header *freed = (struct Header *) (ptr-24);
+	struct Header *freed = (struct Header *) (ptr-24);//calculate the address of the header
 	if(ptr == NULL){
 		return -1; 
 	}
